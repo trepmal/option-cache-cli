@@ -1,11 +1,12 @@
 sudo: false
-dist: trusty
+dist: xenial
 
 language: php
 php:
   - 7.1
   - 7.2
   - 7.3
+  - 7.4
 
 notifications:
   email:
@@ -56,6 +57,9 @@ jobs:
     - stage: test
       php: 7.4
       env: WP_VERSION=latest
+    - stage: test
+      php: 7.4
+      env: WP_VERSION=trunk
     - stage: test
       php: 7.3
       env: WP_VERSION=latest
