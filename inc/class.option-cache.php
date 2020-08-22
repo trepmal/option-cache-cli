@@ -49,7 +49,7 @@ class Option_Cache extends WP_CLI_Command {
 		global $wpdb;
 
 		$autoloaded_options_list = $wpdb->get_results(
-			"SELECT SQL_CALC_FOUND_ROWS option_name, option_value, autoload FROM {$wpdb->options} WHERE option_name NOT LIKE '_transient%' ORDER BY autoload DESC, option_id ASC LIMIT 500",
+			"SELECT SQL_CALC_FOUND_ROWS option_name, option_value, autoload FROM {$wpdb->options} WHERE option_name NOT LIKE '_transient%' ORDER BY autoload DESC, option_id ASC LIMIT 500"
 		);
 
 		if ( $wpdb->num_rows > 500 ) {
