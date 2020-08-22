@@ -27,7 +27,21 @@ class Option_Cache extends WP_CLI_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp option-cache diagnostic
+	 *     $ wp option-cache diagnostic
+	 *     # example output truncated
+	 *     +-------------------+------------+------------------+--------------------+-----------------------------+
+	 *     | option_name       | autoloaded | db               | cache              | note                        |
+	 *     +-------------------+------------+------------------+--------------------+-----------------------------+
+	 *     | siteurl           | yes        | https://test.com | https://test.com   | OK: Cache is match          |
+	 *     | home              | yes        | https://test.com | https://test.com   | OK: Cache is match          |
+	 *     | blogname          | yes        | Test Blog        | Test Blog          | OK: Cache is match          |
+	 *     | testing_notoption | yes        | bacon            | bacon              | 🚨 Found in NOTOPTIONS      |
+	 *     | moderation_keys   | no         |                  |                    | OK: Cache is unset          |
+	 *     | recently_edited   | no         |                  |                    | OK: Cache is unset          |
+	 *     | testing           | no         | somevalue        | somedifferentvalue | 🚨 CACHE MISMATCH           |
+	 *     | site_logo         | NOTOPTION  | --               | --                 |                             |
+	 *     | testing_notoption | NOTOPTION  | --               | --                 | 🚨 NOTOPTION is real option |
+	 *     +-------------------+------------+------------------+--------------------+-----------------------------+
 	 *
 	 */
 	function diagnostic( $args, $assoc_args ) {
