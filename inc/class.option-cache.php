@@ -9,9 +9,12 @@ class Option_Cache extends WP_CLI_Command {
 
 	/**
 	 * Check cache values for all options, excluding transients
-	 *
+	 * Defaults to first 1000 options.
 	 *
 	 * ## OPTIONS
+	 *
+	 * [--show-all]
+	 * : Show all options (still excluding transients)
 	 *
 	 * [--format=<format>]
 	 * : Format to use for the output. One of table, csv or json.
@@ -46,22 +49,27 @@ class Option_Cache extends WP_CLI_Command {
 	 */
 	function diagnostic( $args, $assoc_args ) {
 
+		$show_all = WP_CLI\Utils\get_flag_value( $assoc_args, 'show-all', false );
+
 		global $wpdb;
 
-		$autoloaded_options_list = $wpdb->get_results(
-			"SELECT SQL_CALC_FOUND_ROWS option_name, option_value, autoload FROM {$wpdb->options} WHERE option_name NOT LIKE '_transient%' ORDER BY autoload DESC, option_id ASC LIMIT 500"
+		$limit = $show_all ? 10000 : 1000;
+
+		$options_list = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT SQL_CALC_FOUND_ROWS option_name, option_value, autoload FROM {$wpdb->options} WHERE option_name NOT LIKE '_transient%' ORDER BY autoload DESC, option_id ASC LIMIT %d",
+				$limit
+			)
 		);
 
-		if ( $wpdb->num_rows > 500 ) {
-			WP_CLI::warning( 'More than 500 autoloaded options' );
-		}
+		$total_rows = $wpdb->get_var('SELECT FOUND_ROWS()');
 
 		$output = [];
 
 		$alloptions_cache = wp_cache_get( 'alloptions', 'options' );
 		$notoptions_cache = wp_cache_get( 'notoptions', 'options' ) ?? [];
 
-		foreach ( $autoloaded_options_list as $option ) {
+		foreach ( $options_list as $option ) {
 			$optnam = $option->option_name;
 			$optval = $option->option_value;
 
@@ -97,22 +105,28 @@ class Option_Cache extends WP_CLI_Command {
 
 		}
 
-		foreach( $notoptions_cache as $name => $val ) {
-			$note = '';
-			if ( isset( $output[ $name ] ) ) {
-				$note = '🚨 NOTOPTION is real option';
+		if ( is_array( $notoptions_cache ) ) { // may sometimes be 'false'
+			foreach( $notoptions_cache as $name => $val ) {
+				$note = '';
+				if ( isset( $output[ $name ] ) ) {
+					$note = '🚨 NOTOPTION is real option';
+				}
+				$output[ 'NOTOPTION-' . $name ] = [
+					'option_name' => $name,
+					'autoloaded'  => 'NOTOPTION',
+					'db'          => '--',
+					'cache'       => '--',
+					'note'        => $note,
+				];
 			}
-			$output[ 'NOTOPTION-' . $name ] = [
-				'option_name' => $name,
-				'autoloaded'  => 'NOTOPTION',
-				'db'          => '--',
-				'cache'       => '--',
-				'note'        => $note,
-			];
 		}
 
 		$formatter = new \WP_CLI\Formatter( $assoc_args, array( 'option_name', 'autoloaded', 'db', 'cache', 'note' ), 'options' );
 		$formatter->display_items( $output );
+
+		if ( $total_rows > $limit ) {
+			WP_CLI::warning( sprintf( '%d more options not listed. Use --show-all to retreive beyond the first %d', ($total_rows - $limit), $limit ) );
+		}
 
 	}
 
