@@ -130,4 +130,112 @@ class Option_Cache extends WP_CLI_Command {
 
 	}
 
+	/**
+	 * Compare cache and db value for given option
+	 *
+	 * ## OPTIONS
+	 *
+	 * <option-name>
+	 * : Option name to compare
+	 *
+	 * [--format=<format>]
+	 * : Format to use for the output. One of table, csv or json.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 *   - csv
+	 *   - yaml
+	 *   - count
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     $ wp option-cache compare home
+	 *     +-----------------------------+-----------------+-----------------------------+-------------------------+---------------+--------------------------+------------------+
+	 *     | database value              | should autoload | alloptions cache            | alloptions cache health | options cache | options cache health     | notoptions cache |
+	 *     +-----------------------------+-----------------+-----------------------------+-------------------------+---------------+--------------------------+------------------+
+	 *     | http://local.wordpress.test | 1               | http://local.wordpress.test | ✅ match                | asdf          | ❓ should not be present | ✅ not present   |
+	 *     +-----------------------------+-----------------+-----------------------------+-------------------------+---------------+--------------------------+------------------+
+	 *
+	 */
+	function compare( $args, $assoc_args ) {
+
+		list( $option_name ) = $args;
+
+		global $wpdb;
+
+		$db_row = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT option_value, autoload FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
+				$option_name
+			)
+		);
+
+		if ( empty( $db_row ) || ! isset( $db_row[0] ) ) {
+			$db_row = new stdClass();
+		} else {
+			$db_row = $db_row[0];
+		}
+
+		$db_value = ( isset( $db_row->option_value ) ? $db_row->option_value : null );
+		$should_autoload = ( isset( $db_row->autoload ) && 'yes' === $db_row->autoload );
+
+		$data = [];
+
+		$data['database value']  = $db_value;
+		$data['should autoload'] = $should_autoload;
+
+		$alloptions_cache       = wp_cache_get( 'alloptions', 'options' );
+		if ( isset( $alloptions_cache[ $option_name ] ) ) {
+			$alloptions_cache_value = $alloptions_cache[ $option_name ];
+
+			$data['alloptions cache']  = $alloptions_cache_value;
+
+			if ( $should_autoload && $db_value === $alloptions_cache_value ) {
+				$data['alloptions cache health']  = '✅ match';
+			} elseif ( $should_autoload && $db_value !== $alloptions_cache_value ) {
+				$data['alloptions cache health']  = '❌ no match';
+			} elseif ( ! $should_autoload ) {
+				$data['alloptions cache health']  = '❓ should not be present';
+			}
+		} else {
+			$data['alloptions cache']  = 'unset';
+			$data['alloptions cache health']  = '✅ cache unset';
+		}
+
+		$options_cache       = wp_cache_get( $option_name, 'options' );
+		if ( $options_cache ) {
+			$data['options cache']  = $options_cache;
+
+			if ( $should_autoload && $db_value === $options_cache_value ) {
+				$data['options cache health']  = '❌ no match';
+			} elseif ( $should_autoload && $db_value !== $options_cache_value ) {
+				$data['options cache health']  = '❓ should not be present';
+			} elseif ( ! $should_autoload ) {
+				$data['options cache health']  = '✅ match';
+			}
+		} else {
+			$data['options cache']  = 'unset';
+			$data['options cache health']  = '✅ cache unset';
+		}
+
+		$notoptions_cache       = wp_cache_get( 'notoptions', 'options' ) ?? [];
+		$notoptions_cache_value = isset( $notoptions_cache[ $option_name ] ) ?? false;
+		if ( ! $notoptions_cache_value ) {
+			$data['notoptions cache']  = '✅ not present';
+		} elseif ( $db_value && $notoptions_cache_value ) {
+			$data['notoptions cache']  = '❌ should not be present';
+		} elseif ( is_null( $db_value ) && $notoptions_cache_value ) {
+			$data['notoptions cache']  = '✅ present, not in db';
+		} else {
+			$data['notoptions cache']  = var_export( $notoptions_cache_value, true );
+		}
+
+		$formatter = new \WP_CLI\Formatter( $assoc_args, array_keys( $data ), 'options' );
+		$formatter->display_items( [ $data ] );
+
+	}
+
 }

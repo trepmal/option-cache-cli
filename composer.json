@@ -17,7 +17,8 @@
     },
     "bundled": false,
     "commands": [
-      "option-cache diagnostic"
+      "option-cache diagnostic",
+      "option-cache compare"
     ]
   },
   "autoload": {
