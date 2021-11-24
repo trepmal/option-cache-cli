@@ -86,22 +86,11 @@ wp option-cache compare <option-name> [--format=<format>]
 **EXAMPLES**
 
     $ wp option-cache compare home
-    Database value:
-    http://local.wordpress.test
-
-    Set to autoload:
-    1
-
-    Autoloaded options (alloptions) cache value:
-    http://local.wordpress.test
-    Success: Cache matches db.
-
-    Standalone options cache value:
-    asdf
-    Value should not be in options cache.
-
-    notoptions cache:
-    Success: Not found in notoptions.
+    +-----------------------------+-----------------+-----------------------------+-------------------------+---------------+--------------------------+------------------+
+    | database value              | should autoload | alloptions cache            | alloptions cache health | options cache | options cache health     | notoptions cache |
+    +-----------------------------+-----------------+-----------------------------+-------------------------+---------------+--------------------------+------------------+
+    | http://local.wordpress.test | 1               | http://local.wordpress.test | ✅ match                | asdf          | ❓ should not be present | ✅ not present   |
+    +-----------------------------+-----------------+-----------------------------+-------------------------+---------------+--------------------------+------------------+
 
 ## Installing
 

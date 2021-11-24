@@ -153,22 +153,11 @@ class Option_Cache extends WP_CLI_Command {
 	 * ## EXAMPLES
 	 *
 	 *     $ wp option-cache compare home
-	 *     Database value:
-	 *     http://local.wordpress.test
-	 *
-	 *     Set to autoload:
-	 *     1
-	 *
-	 *     Autoloaded options (alloptions) cache value:
-	 *     http://local.wordpress.test
-	 *     Success: Cache matches db.
-	 *
-	 *     Standalone options cache value:
-	 *     asdf
-	 *     Value should not be in options cache.
-
-	 *     notoptions cache:
-	 *     Success: Not found in notoptions.
+	 *     +-----------------------------+-----------------+-----------------------------+-------------------------+---------------+--------------------------+------------------+
+	 *     | database value              | should autoload | alloptions cache            | alloptions cache health | options cache | options cache health     | notoptions cache |
+	 *     +-----------------------------+-----------------+-----------------------------+-------------------------+---------------+--------------------------+------------------+
+	 *     | http://local.wordpress.test | 1               | http://local.wordpress.test | ✅ match                | asdf          | ❓ should not be present | ✅ not present   |
+	 *     +-----------------------------+-----------------+-----------------------------+-------------------------+---------------+--------------------------+------------------+
 	 *
 	 */
 	function compare( $args, $assoc_args ) {
@@ -193,68 +182,59 @@ class Option_Cache extends WP_CLI_Command {
 		$db_value = ( isset( $db_row->option_value ) ? $db_row->option_value : null );
 		$should_autoload = ( isset( $db_row->autoload ) && 'yes' === $db_row->autoload );
 
-		WP_CLI::line( WP_CLI::colorize( '%BDatabase value:%n' ) );
-		if ( $db_value ) {
-			WP_CLI::print_value( $db_value );
+		$data = [];
 
-			WP_CLI::line( WP_CLI::colorize( PHP_EOL . '%BSet to autoload:%n' ) );
-			WP_CLI::print_value( $should_autoload );
-
-		} else {
-			WP_CLI::line( WP_CLI::colorize( '%RDatabase value not found.%n' ) );
-		}
-
-		WP_CLI::line( WP_CLI::colorize( PHP_EOL . '%BAutoloaded options (alloptions) cache value:%n' ) );
+		$data['database value']  = $db_value;
+		$data['should autoload'] = $should_autoload;
 
 		$alloptions_cache       = wp_cache_get( 'alloptions', 'options' );
 		if ( isset( $alloptions_cache[ $option_name ] ) ) {
 			$alloptions_cache_value = $alloptions_cache[ $option_name ];
 
-			WP_CLI::print_value( $alloptions_cache_value );
+			$data['alloptions cache']  = $alloptions_cache_value;
 
 			if ( $should_autoload && $db_value === $alloptions_cache_value ) {
-				WP_CLI::success( 'Cache matches db.' );
+				$data['alloptions cache health']  = '✅ match';
 			} elseif ( $should_autoload && $db_value !== $alloptions_cache_value ) {
-				WP_CLI::line( WP_CLI::colorize( '%RCache mismatches.%n' ) );
+				$data['alloptions cache health']  = '❌ no match';
 			} elseif ( ! $should_autoload ) {
-				WP_CLI::line( WP_CLI::colorize( '%RValue should not be in alloptions cache.%n' ) );
+				$data['alloptions cache health']  = '❓ should not be present';
 			}
 		} else {
-			WP_CLI::line( 'cache is unset' );
+			$data['alloptions cache']  = 'unset';
+			$data['alloptions cache health']  = '✅ cache unset';
 		}
-
-		WP_CLI::line( WP_CLI::colorize( PHP_EOL . '%BStandalone options cache value:%n' ) );
 
 		$options_cache       = wp_cache_get( $option_name, 'options' );
 		if ( $options_cache ) {
-			WP_CLI::print_value( $options_cache );
+			$data['options cache']  = $options_cache;
 
 			if ( $should_autoload && $db_value === $options_cache_value ) {
-				WP_CLI::line( WP_CLI::colorize( '%RCache mismatches.%n' ) );
+				$data['options cache health']  = '❌ no match';
 			} elseif ( $should_autoload && $db_value !== $options_cache_value ) {
-				WP_CLI::line( WP_CLI::colorize( '%RValue should not be in options cache.%n' ) );
+				$data['options cache health']  = '❓ should not be present';
 			} elseif ( ! $should_autoload ) {
-				WP_CLI::success( 'Cache matches db.' );
+				$data['options cache health']  = '✅ match';
 			}
 		} else {
-			WP_CLI::line( 'cache is unset' );
+			$data['options cache']  = 'unset';
+			$data['options cache health']  = '✅ cache unset';
 		}
-
-		WP_CLI::line( WP_CLI::colorize( PHP_EOL . '%Bnotoptions cache:%n' ) );
 
 		$notoptions_cache       = wp_cache_get( 'notoptions', 'options' ) ?? [];
 		$notoptions_cache_value = isset( $notoptions_cache[ $option_name ] ) ?? false;
-		if ( $db_value && $notoptions_cache_value ) {
-			WP_CLI::line( WP_CLI::colorize( '%ROption name should not be in notoptions cache.%n' ) );
-		} elseif ( $db_value && ! $notoptions_cache_value ) {
-			WP_CLI::success( 'Not found in notoptions.' );
+		if ( ! $notoptions_cache_value ) {
+			$data['notoptions cache']  = '✅ not present';
+		} elseif ( $db_value && $notoptions_cache_value ) {
+			$data['notoptions cache']  = '❌ should not be present';
 		} elseif ( is_null( $db_value ) && $notoptions_cache_value ) {
-			WP_CLI::line( 'Found in notoptions.' );
-		} elseif ( ! $notoptions_cache_value ) {
-			WP_CLI::success( 'Not found in notoptions.' );
+			$data['notoptions cache']  = '✅ present, not in db';
+		} else {
+			$data['notoptions cache']  = var_export( $notoptions_cache_value, true );
 		}
-		$data[0]['notoptions'] = var_export( $notoptions_cache_value, true );
-		$data[1]['notoptions'] = $db_value && $notoptions_cache_value ? '❌' : '';
+
+		$formatter = new \WP_CLI\Formatter( $assoc_args, array_keys( $data ), 'options' );
+		$formatter->display_items( [ $data ] );
 
 	}
 
