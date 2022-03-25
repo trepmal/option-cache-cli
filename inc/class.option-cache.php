@@ -91,6 +91,9 @@ class Option_Cache extends WP_CLI_Command {
 				case ( $cache === $optval ) :
 					$note = 'OK: Cache is match';
 				break;
+				case ( $cache == $optval ) :
+					$note = 'NOTE: Cache is loose (==) match';
+				break;
 				default :
 					$note = '🚨 CACHE MISMATCH';
 			}
