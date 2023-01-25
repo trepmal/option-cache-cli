@@ -16,15 +16,22 @@ This package implements the following commands:
 Check cache values for all options, excluding transients
 
 ~~~
-wp option-cache diagnostic [--show-all] [--format=<format>]
+wp option-cache diagnostic [--per-page=<per-page>] [--page=<page>] [--hide-notoptions] [--format=<format>]
 ~~~
 
 Defaults to first 1000 options.
 
 **OPTIONS**
 
-	[--show-all]
-		Show all options (still excluding transients)
+	[--per-page=<per-page>]
+		Number of options from database to list. 'notoptions' are not counted
+		and are always displayed. Default: 1000
+
+	[--page=<page>]
+		Page of results
+
+	[--hide-notoptions]
+		Hide notoptions output. Default: Hidden after page 2
 
 	[--format=<format>]
 		Format to use for the output. One of table, csv or json.
@@ -42,19 +49,19 @@ Defaults to first 1000 options.
 
     $ wp option-cache diagnostic
     # example output truncated
-    +-------------------+------------+------------------+--------------------+-----------------------------+
-    | option_name       | autoloaded | db               | cache              | note                        |
-    +-------------------+------------+------------------+--------------------+-----------------------------+
-    | siteurl           | yes        | https://test.com | https://test.com   | OK: Cache is match          |
-    | home              | yes        | https://test.com | https://test.com   | OK: Cache is match          |
-    | blogname          | yes        | Test Blog        | Test Blog          | OK: Cache is match          |
-    | testing_notoption | yes        | bacon            | bacon              | 🚨 Found in NOTOPTIONS      |
-    | moderation_keys   | no         |                  |                    | OK: Cache is unset          |
-    | recently_edited   | no         |                  |                    | OK: Cache is unset          |
-    | testing           | no         | somevalue        | somedifferentvalue | 🚨 CACHE MISMATCH           |
-    | site_logo         | NOTOPTION  | --               | --                 |                             |
-    | testing_notoption | NOTOPTION  | --               | --                 | 🚨 NOTOPTION is real option |
-    +-------------------+------------+------------------+--------------------+-----------------------------+
+    +-------------------+-----------+------------------+--------------------+--------------------+-----------------------------+
+    | option_name       | autoload  | db               | alloptions_cache   | options_cache      | note                        |
+    +-------------------+-----------+------------------+--------------------+--------------------+-----------------------------+
+    | siteurl           | yes       | https://test.com | https://test.com   |                    | OK: Cache is match          |
+    | home              | yes       | https://test.com | https://test.com   |                    | OK: Cache is match          |
+    | blogname          | yes       | Test Blog        | Test Blog          | Cool Blog          | 🚨 WRONG CACHE              |
+    | testing_notoption | yes       | bacon            | bacon              |                    | 🚨 Found in NOTOPTIONS      |
+    | moderation_keys   | no        |                  |                    |                    | OK: Cache is unset          |
+    | recently_edited   | no        |                  |                    |                    | OK: Cache is unset          |
+    | testing           | no        | somevalue        |                    | somedifferentvalue | 🚨 CACHE MISMATCH           |
+    | site_logo         | NOTOPTION | --               | --                 | --                 |                             |
+    | testing_notoption | NOTOPTION | --               | --                 | --                 | 🚨 NOTOPTION is real option |
+    +-------------------+-----------+------------------+--------------------+--------------------+-----------------------------+
 
 
 
