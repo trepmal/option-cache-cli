@@ -83,37 +83,45 @@ class Option_Cache extends WP_CLI_Command {
 		foreach ( $options_list as $option ) {
 			$optnam = $option->option_name;
 			$optval = $option->option_value;
+			$should_autoload = $option->autoload === 'yes';
 
-			if ( 'yes' === $option->autoload ) {
-				$cache  = $alloptions_cache[ $optnam ] ?? false;
-			} else {
-				$cache  = wp_cache_get( $optnam, 'options' );
-			}
+			$a_cache = $alloptions_cache[ $optnam ] ?? false;  // Alloptions
+			$i_cache = wp_cache_get( $optnam, 'options' );     // Independent
+			$e_cache = $should_autoload ? $a_cache : $i_cache; // Expected
+			$u_cache = $should_autoload ? $i_cache : $a_cache; // Unexpected
 
-			$match = ( false === $cache || $optval === $cache );
+			$match = ( false === $e_cache || $optval === $e_cache );
 
 			switch ( true ) {
 				case ( isset( $notoptions_cache[ $optnam ] ) ) : // first, because it can still be found in cache
 					$note = '🚨 Found in NOTOPTIONS';
 				break;
-				case ( false === $cache ) :
+				case ( false === $e_cache ) :
 					$note = 'OK: Cache is unset';
 				break;
-				case ( $cache === $optval ) :
+				case ( $e_cache === $optval ) :
 					$note = 'OK: Cache is match';
 				break;
-				case ( $cache == $optval ) :
+				case ( $e_cache == $optval ) :
 					$note = 'NOTE: Cache is loose (==) match';
 				break;
 				default :
 					$note = '🚨 CACHE MISMATCH';
 			}
 
+			if ( false !== $u_cache ) {
+				$note = '🚨 WRONG CACHE';
+			}
+
+			$a_cache = $a_cache === '' ? '*empty*' : $a_cache;
+			$i_cache = $i_cache === '' ? '*empty*' : $i_cache;
+
 			$output[ $optnam ] = [
 				'option_name' => $optnam,
-				'autoloaded'  => $option->autoload,
+				'autoload'    => $option->autoload,
 				'db'          => ( $match ? substr( $optval, 0, 200 ) : $optval ),
-				'cache'       => ( $match ? substr( $cache, 0, 200 ) : $cache ),
+				'alloptions_cache' => ( ( $should_autoload && $match ) ? substr( $a_cache, 0, 200 ) : $a_cache ),
+				'options_cache'    => ( ( ! $should_autoload && $match ) ? substr( $i_cache, 0, 200 ) : $i_cache ),
 				'note'        => $note,
 			];
 
@@ -127,15 +135,16 @@ class Option_Cache extends WP_CLI_Command {
 				}
 				$output[ 'NOTOPTION-' . $name ] = [
 					'option_name' => $name,
-					'autoloaded'  => 'NOTOPTION',
+					'autoload'    => 'NOTOPTION',
 					'db'          => '--',
-					'cache'       => '--',
+					'alloptions_cache' => '--',
+					'options_cache'    => '--',
 					'note'        => $note,
 				];
 			}
 		}
 
-		$formatter = new \WP_CLI\Formatter( $assoc_args, array( 'option_name', 'autoloaded', 'db', 'cache', 'note' ), 'options' );
+		$formatter = new \WP_CLI\Formatter( $assoc_args, array( 'option_name', 'autoload', 'db', 'alloptions_cache', 'options_cache', 'note' ), 'options' );
 		$formatter->display_items( $output );
 
 		if ( $total_rows > ( $offset + $limit ) ) {
