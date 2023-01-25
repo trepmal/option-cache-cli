@@ -144,10 +144,15 @@ class Option_Cache extends WP_CLI_Command {
 			}
 		}
 
+		$format = $assoc_args['format'];
 		$formatter = new \WP_CLI\Formatter( $assoc_args, array( 'option_name', 'autoload', 'db', 'alloptions_cache', 'options_cache', 'note' ), 'options' );
 		$formatter->display_items( $output );
 
-		if ( $total_rows > ( $offset + $limit ) ) {
+		if (
+			// don't show footer for strict formats (csv, json...)
+			$format == 'table' &&
+			$total_rows > ( $offset + $limit )
+		) {
 			WP_CLI::line( sprintf(
 				'Page %d/%d database options shown. Use `--per-page=%d --page=%d` for next set.',
 				$page,
