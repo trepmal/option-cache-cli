@@ -177,8 +177,10 @@ class Option_Cache extends WP_CLI_Command {
 		);
 
 		if ( empty( $db_row ) || ! isset( $db_row[0] ) ) {
+			$in_db = false;
 			$db_row = new stdClass();
 		} else {
+			$in_db = true;
 			$db_row = $db_row[0];
 		}
 
@@ -187,7 +189,7 @@ class Option_Cache extends WP_CLI_Command {
 
 		$data = [];
 
-		$data['database value']  = $db_value;
+		$data['database value']  = $in_db ? $db_value : 'not in db';
 		$data['should autoload'] = $should_autoload;
 
 		$alloptions_cache       = wp_cache_get( 'alloptions', 'options' );
@@ -196,7 +198,9 @@ class Option_Cache extends WP_CLI_Command {
 
 			$data['alloptions cache']  = $alloptions_cache_value;
 
-			if ( $should_autoload && $db_value === $alloptions_cache_value ) {
+			if ( ! $in_db && $alloptions_cache_value ) {
+				$data['alloptions cache health']  = '❌ should not be present';
+			} elseif ( $should_autoload && $db_value === $alloptions_cache_value ) {
 				$data['alloptions cache health']  = '✅ match';
 			} elseif ( $should_autoload && $db_value !== $alloptions_cache_value ) {
 				$data['alloptions cache health']  = '❌ no match';
@@ -208,11 +212,13 @@ class Option_Cache extends WP_CLI_Command {
 			$data['alloptions cache health']  = '✅ cache unset';
 		}
 
-		$options_cache       = wp_cache_get( $option_name, 'options' );
-		if ( $options_cache ) {
-			$data['options cache']  = $options_cache;
+		$options_cache_value = wp_cache_get( $option_name, 'options' );
+		if ( $options_cache_value ) {
+			$data['options cache']  = $options_cache_value;
 
-			if ( $should_autoload && $db_value === $options_cache_value ) {
+			if ( ! $in_db && $options_cache_value ) {
+				$data['options cache health']  = '❌ should not be present';
+			} elseif ( $should_autoload && $db_value === $options_cache_value ) {
 				$data['options cache health']  = '❌ no match';
 			} elseif ( $should_autoload && $db_value !== $options_cache_value ) {
 				$data['options cache health']  = '❓ should not be present';
