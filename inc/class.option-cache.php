@@ -13,8 +13,12 @@ class Option_Cache extends WP_CLI_Command {
 	 *
 	 * ## OPTIONS
 	 *
-	 * [--show-all]
-	 * : Show all options (still excluding transients)
+	 * [--per-page=<per-page>]
+	 * : Number of options from database to list. 'notoptions' are not counted
+	 * and are always displayed. Default: 1000
+	 *
+	 * [--page=<page>]
+	 * : Page of results
 	 *
 	 * [--format=<format>]
 	 * : Format to use for the output. One of table, csv or json.
@@ -49,16 +53,19 @@ class Option_Cache extends WP_CLI_Command {
 	 */
 	function diagnostic( $args, $assoc_args ) {
 
-		$show_all = WP_CLI\Utils\get_flag_value( $assoc_args, 'show-all', false );
+		$limit = absint( WP_CLI\Utils\get_flag_value( $assoc_args, 'per-page', 1000 ) );
+		$page  = absint( WP_CLI\Utils\get_flag_value( $assoc_args, 'page', 1 ) );
+		$page_for_math = $page - 1;
 
 		global $wpdb;
 
-		$limit = $show_all ? 10000 : 1000;
+		$offset = $limit * $page_for_math;
 
 		$options_list = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT SQL_CALC_FOUND_ROWS option_name, option_value, autoload FROM {$wpdb->options} WHERE option_name NOT LIKE '_transient%' ORDER BY autoload DESC, option_id ASC LIMIT %d",
-				$limit
+				"SELECT SQL_CALC_FOUND_ROWS option_name, option_value, autoload FROM {$wpdb->options} WHERE option_name NOT LIKE '_transient%' ORDER BY autoload DESC, option_id ASC LIMIT %d OFFSET %d",
+				$limit,
+				$offset
 			)
 		);
 
@@ -127,8 +134,14 @@ class Option_Cache extends WP_CLI_Command {
 		$formatter = new \WP_CLI\Formatter( $assoc_args, array( 'option_name', 'autoloaded', 'db', 'cache', 'note' ), 'options' );
 		$formatter->display_items( $output );
 
-		if ( $total_rows > $limit ) {
-			WP_CLI::warning( sprintf( '%d more options not listed. Use --show-all to retreive beyond the first %d', ($total_rows - $limit), $limit ) );
+		if ( $total_rows > ( $offset + $limit ) ) {
+			WP_CLI::line( sprintf(
+				'Page %d/%d database options shown. Use `--per-page=%d --page=%d` for next set.',
+				$page,
+				ceil( $total_rows / $limit ),
+				$limit,
+				$page + 1
+			) );
 		}
 
 	}
