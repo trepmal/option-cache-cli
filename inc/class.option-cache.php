@@ -20,6 +20,9 @@ class Option_Cache extends WP_CLI_Command {
 	 * [--page=<page>]
 	 * : Page of results
 	 *
+	 * [--hide-notoptions]
+	 * : Hide notoptions output. Default: Hidden after page 2
+	 *
 	 * [--format=<format>]
 	 * : Format to use for the output. One of table, csv or json.
 	 * ---
@@ -56,6 +59,7 @@ class Option_Cache extends WP_CLI_Command {
 		$limit = absint( WP_CLI\Utils\get_flag_value( $assoc_args, 'per-page', 1000 ) );
 		$page  = absint( WP_CLI\Utils\get_flag_value( $assoc_args, 'page', 1 ) );
 		$page_for_math = $page - 1;
+		$hide_notoptions= WP_CLI\Utils\get_flag_value( $assoc_args, 'hide-notoptions', ( $page > 1 ) );
 
 		global $wpdb;
 
@@ -115,7 +119,7 @@ class Option_Cache extends WP_CLI_Command {
 
 		}
 
-		if ( is_array( $notoptions_cache ) ) { // may sometimes be 'false'
+		if ( ! $hide_notoptions && is_array( $notoptions_cache ) ) { // may sometimes be 'false'
 			foreach( $notoptions_cache as $name => $val ) {
 				$note = '';
 				if ( isset( $output[ $name ] ) ) {
