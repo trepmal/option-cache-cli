@@ -227,7 +227,7 @@ class Option_Cache extends WP_CLI_Command {
 		$data['should autoload'] = $should_autoload;
 
 		$alloptions_cache       = wp_cache_get( 'alloptions', 'options' );
-		$alloptions_cache_value = $alloptions_cache[ $option_name ] ?: false;
+		$alloptions_cache_value = $alloptions_cache[ $option_name ] ?? false;
 		if ( $alloptions_cache_value ) {
 			$data['alloptions cache']  = $alloptions_cache_value;
 
