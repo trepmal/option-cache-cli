@@ -105,6 +105,9 @@ class Option_Cache extends WP_CLI_Command {
 				case ( $e_cache == $optval ) :
 					$note = 'NOTE: Cache is loose (==) match';
 				break;
+				case ( is_float( $e_cache ) && (string) $e_cache == $optval ) :
+					$note = 'NOTE: Cache is loose (==) match';
+				break;
 				default :
 					$note = '🚨 CACHE MISMATCH';
 			}
