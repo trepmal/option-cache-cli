@@ -251,13 +251,19 @@ class Option_Cache extends WP_CLI_Command {
 			$data['options cache']  = $options_cache_value;
 
 			if ( ! $in_db && $options_cache_value ) {
+				// not in db && in cache = orphaned
 				$data['options cache health']  = '❌ should not be present';
-			} elseif ( $should_autoload && $db_value === $options_cache_value ) {
-				$data['options cache health']  = '❌ no match';
-			} elseif ( $should_autoload && $db_value !== $options_cache_value ) {
-				$data['options cache health']  = '❓ should not be present';
-			} elseif ( ! $should_autoload ) {
+			} elseif ( $should_autoload && $options_cache_value ) {
+				// should auto && in opt cache = bad cache
+				$data['options cache health']  = '❌ should not be present';
+			} elseif ( ! $should_autoload && $db_value === $options_cache_value ) {
 				$data['options cache health']  = '✅ match';
+			} elseif ( ! $should_autoload && $db_value == $options_cache_value ) {
+				$data['options cache health']  = '✅ match (loose)';
+			} elseif ( ! $should_autoload && (string) $db_value == $options_cache_value ) {
+				$data['options cache health']  = '✅ match (loose)';
+			} else {
+				$data['options cache health']  = '❌ mismatch';
 			}
 		} else {
 			$data['options cache']  = 'unset';
