@@ -122,9 +122,9 @@ class Option_Cache extends WP_CLI_Command {
 			$output[ $optnam ] = [
 				'option_name' => $optnam,
 				'autoload'    => $option->autoload,
-				'db'          => ( $match ? substr( $optval, 0, 200 ) : $optval ),
-				'alloptions_cache' => ( ( $should_autoload && $match ) ? substr( $a_cache, 0, 200 ) : $a_cache ),
-				'options_cache'    => ( ( ! $should_autoload && $match ) ? substr( $i_cache, 0, 200 ) : $i_cache ),
+				'db'          => $this->maybe_truncate_value( $optval ),
+				'alloptions_cache' => $this->maybe_truncate_value( $a_cache ),
+				'options_cache'    => $this->maybe_truncate_value( $i_cache ),
 				'note'        => $note,
 			];
 
@@ -292,4 +292,11 @@ class Option_Cache extends WP_CLI_Command {
 
 	}
 
+	private function maybe_truncate_value( $value, $max=200 ) {
+
+		if ( strlen( $value ) > 200 ) {
+			return substr( $value, 0, 200 ) . ' ...[truncated]';
+		}
+		return $value;
+	}
 }
