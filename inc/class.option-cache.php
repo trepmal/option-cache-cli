@@ -83,7 +83,7 @@ class Option_Cache extends WP_CLI_Command {
 		foreach ( $options_list as $option ) {
 			$optnam = $option->option_name;
 			$optval = $option->option_value;
-			$should_autoload = $option->autoload === 'yes';
+			$should_autoload = in_array( $option->autoload, wp_autoload_values_to_autoload() );
 
 			$a_cache = $alloptions_cache[ $optnam ] ?? false;  // Alloptions
 			$i_cache = wp_cache_get( $optnam, 'options' );     // Independent
@@ -216,7 +216,7 @@ class Option_Cache extends WP_CLI_Command {
 		}
 
 		$db_value = ( isset( $db_row->option_value ) ? $db_row->option_value : null );
-		$should_autoload = ( isset( $db_row->autoload ) && 'yes' === $db_row->autoload );
+		$should_autoload = ( isset( $db_row->autoload ) && in_array( $db_row->autoload, wp_autoload_values_to_autoload() ) );
 
 		$data = [];
 
